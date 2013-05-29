@@ -1,6 +1,7 @@
 .gentleselect-data { display: none; }
 
 .gentleselect-label {
+    display: inline-block;
     padding: 1px 20px 1px 20px;
     background-color: #eee;
     

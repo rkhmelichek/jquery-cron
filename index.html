@@ -4,8 +4,8 @@
     <title>jquery-cron : a jQuery plugin</title>
     <link type="text/css" href="gentleSelect/jquery-gentleSelect.css" rel="stylesheet" />
     <link type="text/css" href="cron/jquery-cron.css" rel="stylesheet" />
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
-    <script type="text/javascript" src="gentleSelect/jquery-gentleSelect-min.js"></script>
+    <script type="text/javascript" src="jquery-1.10.0.js"></script>
+    <script type="text/javascript" src="gentleSelect/jquery-gentleSelect.js"></script>
     <script type="text/javascript" src="cron/jquery-cron.js"></script>
 
     <style>
@@ -29,7 +29,16 @@
     <script type="text/javascript">
     $(document).ready(function() {
         $('#example1').cron({
-            initial: "42 3 * * 5",
+            initial: "0,2,18,19,31,42 3 * * 5",
+            effectOpts: {
+              hideOnMouseOut: false
+            },
+            dowOpts: {
+              maxDisplay: 5
+            },
+            timeMinuteOpts: {
+              maxDisplay: 5
+            },
             onChange: function() {
                 $('#example1-val').text($(this).cron("value"));
             }
@@ -83,29 +92,15 @@
     
     <p>
     There is much room for improvements and we welcome contributions
-    and bug fixes. Feel free to fork <a href='https://github.com/shawnchin/jquery-cron'>the project</a> 
+    and bug fixes. Feel free to fork <a href='https://github.com/rkhmelichek/jquery-cron'>the project</a> 
     and send us pull requests!
     </p>
 
-    <h2>Download</h2>
-    <ul>
-        <li>Latest Release : <a href='https://github.com/shawnchin/jquery-cron/zipball/v0.1.3.1'>jquery-cron v0.1.3.1</a></li>
-        <li>If you're feeling brave, download the <a href='https://github.com/shawnchin/jquery-cron/zipball/master'>Development Version</a></li>
-    </ul>
-
-    <h2>TODO</h2>
-    <ul>
-        <li>Support multiple entries per field</li>
-        <li>remove dependency on <a href='http://shawnchin.github.com/jquery-gentleSelect'>jquery-gentleSelect</a>. It should be an option, not a requirement.</li>
-        <li>implement option to add CSS class (simplify customisation)</li>
-        <li>make the AJAX POST functionality more generic</li>
-    </ul>
     <h2>Usage</h2>
 
     <p>
     To use this plugin, one simply needs to load <a href='http://jquery.com'>jQuery</a>, 
-    <a href='http://shawnchin.github.com/jquery-gentleSelect'>jquery-gentleSelect</a> 
-    and the JS/CSS scripts for jquery-cron, then attach it to an empty &lt;div&gt; on DOM ready:
+    and the JS/CSS scripts for jquery-cron and jquery-gentleSelect (included with jquery-cron), then attach it to an empty &lt;div&gt; on DOM ready:
     </p>
 
     <pre>
@@ -204,8 +199,6 @@ $('#example1').cron({
     }
 });</pre>
 
-
-
     <h3 id='option-effectopts'>effectOpts</h3>
     <p>
         You can change the effects used when displaying/hiding the selection menu by changing the
@@ -215,11 +208,11 @@ $('#example1').cron({
     <p>
         The following parameters can be set:
         <ul>
-            <li><a href='http://shawnchin.github.com/jquery-gentleSelect/#option-effect'>openEffect</a> (default: <tt>'slide'</tt>)</li>
-            <li><a href='http://shawnchin.github.com/jquery-gentleSelect/#option-effect'>closeEffect</a> (default: <tt>'slide'</tt>)</li>
-            <li><a href='http://shawnchin.github.com/jquery-gentleSelect/#option-speed'>openSpeed</a> (default: <tt>400</tt>)</li>
-            <li><a href='http://shawnchin.github.com/jquery-gentleSelect/#option-speed'>closeSpeed</a> (default: <tt>400</tt>)</li>
-            <li><a href='http://shawnchin.github.com/jquery-gentleSelect/#option-mouseout'>hideOnMouseOut</a> (default: <tt>true</tt>)</li>
+            <li><tt>openEffect</tt>: (default: <tt>'slide'</tt>)</li>
+            <li><tt>closeEffect</tt>: (default: <tt>'slide'</tt>)</li>
+            <li><tt>openSpeed</tt>: (default: <tt>400</tt>)</li>
+            <li><tt>closeSpeed</tt>: (default: <tt>400</tt>)</li>
+            <li><tt>hideOnMouseOut</tt>: (default: <tt>true</tt>)</li>
         </ul>
     </p>
 
@@ -243,8 +236,6 @@ $('#example2').cron({
     <p>
         It is possible to customise each of the generated select boxes by sending additional
         options to its instance of <tt>gentleSelect</tt>. 
-        All <a href='http://shawnchin.github.com/jquery-gentleSelect/#option-title'>attributes 
-        support by jquery-gentleSelect</a> can be specified.
     </p>
 
     <p>
@@ -327,12 +318,11 @@ var current_value = cron_field.cron("value")
 
 </div>
 <div id='footer'>
-
-
-Copyright &copy; 2010 <a href='http://github.com/shawnchin'>Shawn Chin</a>
+Copyright &copy; 2010 <a href='http://github.com/shawnchin'>Shawn Chin</a><br>
+Copyright &copy; 2013 <a href='http://github.com/rkhmelichek'>Roman Khmelichek</a><br>
 (Licensed under the <a href='http://www.opensource.org/licenses/mit-license.php'>MIT License</a>)
 </div>
-<a href="http://github.com/shawnchin/jquery-cron"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub" /></a>
+<a href="http://github.com/rkhmelichek/jquery-cron"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="Fork me on GitHub" /></a>
 
 </body>
 </html>

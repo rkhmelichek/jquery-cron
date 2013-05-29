@@ -1,36 +1,34 @@
 /*
  * jQuery gentleSelect plugin
- * http://shawnchin.github.com/jquery-cron
+ * http://github.com/rkhmelichek/jquery-cron
  *
- * Copyright (c) 2010 Shawn Chin. 
+ * Copyright (c) 2010 Shawn Chin.
+ * Copyright (c) 2013 Roman Khmelichek.
+ *
  * Dual licensed under the MIT or GPL Version 2 licenses.
- * 
- * Requires:
- * - jQuery
- * - jQuery gentleSelect plugin 
  *
  * Usage:
- *  (JS)
+ * (JS)
+ *   // initialise like this
+ *   var c = $('#cron').cron({
+ *     initial: '9 10 * * *', # Initial value. default = "* * * * *"
+ *     url_set: '/set/', # POST expecting {"cron": "12 10 * * 6"}
+ *   });
  *
- *  // initialise like this
- *  var c = $('#cron').cron({
- *    initial: '9 10 * * *', # Initial value. default = "* * * * *"
- *    url_set: '/set/', # POST expecting {"cron": "12 10 * * 6"}
- *  });
- * 
- *  // you can update values later 
- *  c.cron("value", "1 2 3 4 *");
+ *   // you can update values later 
+ *   c.cron("value", "1 2 3 4 *");
  *
- * // you can also get the current value using the "value" option
- * alert(c.cron("value"));
+ *   // you can also get the current value using the "value" option
+ *   alert(c.cron("value"));
  *
- *  (HTML)
- *  <div id='cron'></div>
+ * (HTML)
+ *   <div id='cron'></div>
  *
  * Notes:
- * At this stage, we only support a subset of possible cron options. 
- * For example, each cron entry can only be digits or "*", no commas
- * to denote multiple entries. We also limit the allowed combinations:
+ * We only support a subset of possible cron options.
+ * For example, each cron field can only be digits (including multiple comma separated values)
+ * or "*", to denote every possible value. We also limit the allowed combinations to:
+ *
  * - Every minute : * * * * *
  * - Every hour   : ? * * * *
  * - Every day    : ? ? * * *
@@ -39,46 +37,48 @@
  * - Every year   : ? ? ? ? *
  */
 (function($) {
-    
+    // Used to expose internal functions to our test suite.
+    var test = {};
+
     var defaults = {
         initial : "* * * * *",
         minuteOpts : {
-            minWidth  : 100, // only applies if columns and itemWidth not set
+            minWidth  : 100,  // Only applies if columns and itemWidth not set.
             itemWidth : 30,
             columns   : 4,
             rows      : undefined,
             title     : "Minutes Past the Hour"
         },
         timeHourOpts : {
-            minWidth  : 100, // only applies if columns and itemWidth not set
+            minWidth  : 100, // Only applies if columns and itemWidth not set.
             itemWidth : 20,
             columns   : 2,
             rows      : undefined,
             title     : "Time: Hour"
         },
         domOpts : {
-            minWidth  : 100, // only applies if columns and itemWidth not set
+            minWidth  : 100, // Only applies if columns and itemWidth not set.
             itemWidth : 30,
             columns   : undefined,
             rows      : 10,
             title     : "Day of Month"
         },
         monthOpts : {
-            minWidth  : 100, // only applies if columns and itemWidth not set
+            minWidth  : 100, // Only applies if columns and itemWidth not set.
             itemWidth : 100,
             columns   : 2,
             rows      : undefined,
             title     : undefined
         },
         dowOpts : {
-            minWidth  : 100, // only applies if columns and itemWidth not set
+            minWidth  : 100, // Only applies if columns and itemWidth not set.
             itemWidth : undefined,
             columns   : undefined,
             rows      : undefined,
             title     : undefined
         },
         timeMinuteOpts : {
-            minWidth  : 100, // only applies if columns and itemWidth not set
+            minWidth  : 100,  // Only applies if columns and itemWidth not set.
             itemWidth : 20,
             columns   : 4,
             rows      : undefined,
@@ -93,26 +93,24 @@
         },
         url_set : undefined,
         customValues : undefined,
-        onChange: undefined // callback function each time value changes
+        onChange: undefined
     };
-    
-    // -------  build some static data -------
-    
-    // options for minutes in an hour
+
+    // Options for minutes in an hour.
     var str_opt_mih = "";
     for (var i = 0; i < 60; i++) {
         var j = (i < 10)? "0":"";
         str_opt_mih += "<option value='"+i+"'>" + j +  i + "</option>\n"; 
     }
 
-    // options for hours in a day
+    // Options for hours in a day,
     var str_opt_hid = "";
     for (var i = 0; i < 24; i++) { 
         var j = (i < 10)? "0":"";
         str_opt_hid += "<option value='"+i+"'>" + j + i + "</option>\n"; 
     }
 
-    // options for days of month
+    // Options for days of month.
     var str_opt_dom = "";
     for (var i = 1; i < 32; i++) {
         if (i == 1 || i == 21 || i == 31) { var suffix = "st"; } 
@@ -122,7 +120,7 @@
         str_opt_dom += "<option value='"+i+"'>" + i + suffix + "</option>\n"; 
     }
 
-    // options for months
+    // Options for months.
     var str_opt_month = "";
     var months = ["January", "February", "March", "April",
                   "May", "June", "July", "August",
@@ -130,8 +128,8 @@
     for (var i = 0; i < months.length; i++) {
         str_opt_month += "<option value='"+(i+1)+"'>" + months[i] + "</option>\n"; 
     }
-    
-    // options for day of week
+
+    // Options for day of week.
     var str_opt_dow = "";
     var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday",
                 "Friday", "Saturday"];
@@ -139,33 +137,54 @@
         str_opt_dow += "<option value='"+i+"'>" + days[i] + "</option>\n"; 
     }
 
-    // options for period
+    // Options for period.
     var str_opt_period = "";
     var periods = ["minute", "hour", "day", "week", "month", "year"];
     for (var i = 0; i < periods.length; i++) {
         str_opt_period += "<option value='"+periods[i]+"'>" + periods[i] + "</option>\n"; 
     }
-    
-    // display matrix
+
+    // Display matrix.
     var toDisplay = {
         "minute" : [],
         "hour"   : ["mins"],
-        "day"    : ["time"],
-        "week"   : ["dow", "time"],
-        "month"  : ["dom", "time"],
-        "year"   : ["dom", "month", "time"]
+        "day"    : ["time-hrs", "time-mins"],
+        "week"   : ["dow", "time-hrs", "time-mins"],
+        "month"  : ["dom", "time-hrs", "time-mins"],
+        "year"   : ["dom", "month", "time-hrs", "time-mins"]
     };
-    
+
+    // Matches a cron field.
+    var cron_field = "(((\\d{1,2},)*\\d{1,2})|\\*)";
+
+    // Matches a cron field, but does not match "*".
+    var cron_field_must = "((\\d{1,2},)*\\d{1,2})";
+
+    // Acceptable cron formats we support.
     var combinations = {
-        "minute" : /^(\*\s){4}\*$/,                    // "* * * * *"
-        "hour"   : /^\d{1,2}\s(\*\s){3}\*$/,           // "? * * * *"
-        "day"    : /^(\d{1,2}\s){2}(\*\s){2}\*$/,      // "? ? * * *"
-        "week"   : /^(\d{1,2}\s){2}(\*\s){2}\d{1,2}$/, // "? ? * * ?"
-        "month"  : /^(\d{1,2}\s){3}\*\s\*$/,           // "? ? ? * *"
-        "year"   : /^(\d{1,2}\s){4}\*$/                // "? ? ? ? *"
+        // "* * * * *"
+        "minute" : new RegExp("^(\\*\\s){4}\\*$"),
+
+        // "? * * * *"
+        "hour"   : new RegExp("^" + cron_field_must + "\\s(\\*\\s){3}\\*$"),
+
+        // "? ? * * *"
+        "day"    : new RegExp("^(" + cron_field_must + "\\s){2}(\\*\\s){2}\\*$"),
+
+        // "? ? * * ?"
+        "week"   : new RegExp("^(" + cron_field_must + "\\s){2}(\\*\\s){2}" + cron_field_must + "$"),
+
+        // "? ? ? * *"
+        "month"  : new RegExp("^(" + cron_field_must + "\\s){3}\\*\\s\\*$"),
+
+        // "? ? ? ? *"
+        "year"   : new RegExp("^(" + cron_field_must + "\\s){4}\\*$")
     };
-    
-    // ------------------ internal functions ---------------
+
+    /**
+     * Internal Functions
+     */
+
     function defined(obj) {
         if (typeof obj == "undefined") { return false; }
         else { return true; }
@@ -174,37 +193,44 @@
     function undefinedOrObject(obj) {
         return (!defined(obj) || typeof obj == "object")
     }
-    
+ 
     function getCronType(cron_str) {
-        // check format of initial cron value
-        var valid_cron = /^((\d{1,2}|\*)\s){4}(\d{1,2}|\*)$/
+        // Check format of initial cron value.
+        var valid_cron = new RegExp("^(" + cron_field + "\\s){4}" + cron_field + "$");
         if (typeof cron_str != "string" || !valid_cron.test(cron_str)) {
             $.error("cron: invalid initial value");
             return undefined;
         }
-        // check actual cron values
+
+        // Check actual cron values.
         var d = cron_str.split(" ");
         //            mm, hh, DD, MM, DOW
         var minval = [ 0,  0,  1,  1,  0];
         var maxval = [59, 23, 31, 12,  6];
         for (var i = 0; i < d.length; i++) {
-            if (d[i] == "*") continue;
-            var v = parseInt(d[i]);
-            if (defined(v) && v <= maxval[i] && v >= minval[i]) continue;
+            if (d[i] == "*")
+                continue;
 
-            $.error("cron: invalid value found (col "+(i+1)+") in " + o.initial);
+            var v = parseInt(d[i]);
+            if (defined(v) && v <= maxval[i] && v >= minval[i])
+                continue;
+
+            $.error("cron: invalid value found (col "+(i+1)+") in " + cron_str);
             return undefined;
         }
 
-        // determine combination
+        // Determine combination.
         for (var t in combinations) {
-            if (combinations[t].test(cron_str)) { return t; }
+            if (combinations[t].test(cron_str)) {
+                return t;
+            }
         }
 
-        // unknown combination
-        $.error("cron: valid but unsupported cron format. sorry.");
+        // Unknown combination.
+        $.error("cron: valid but unsupported cron format");
         return undefined;
     }
+    test.getCronType = getCronType;
 
     function hasError(c, o) {
         if (!defined(getCronType(o.initial))) { return true; }
@@ -213,58 +239,60 @@
     }
 
     function getCurrentValue(c) {
-        var b = c.data("block");
+        var block = c.data("block");
         var min = hour = day = month = dow = "*";
-        var selectedPeriod = b["period"].find("select").val();
+        var selectedPeriod = block["period"].find("select").val();
         switch (selectedPeriod) {
             case "minute":
                 break;
-                
+
             case "hour":
-                min = b["mins"].find("select").val();
+                min = block["mins"].find("select").val();
                 break;
 
             case "day":
-                min  = b["time"].find("select.cron-time-min").val();
-                hour = b["time"].find("select.cron-time-hour").val();
+                min  = block["time-mins"].find("select").val();
+                hour = block["time-hrs"].find("select").val();
                 break;
 
             case "week":
-                min  = b["time"].find("select.cron-time-min").val();
-                hour = b["time"].find("select.cron-time-hour").val();
-                dow  =  b["dow"].find("select").val();
+                min  = block["time-mins"].find("select").val();
+                hour = block["time-hrs"].find("select").val();
+                dow  =  block["dow"].find("select").val();
                 break;
 
             case "month":
-                min  = b["time"].find("select.cron-time-min").val();
-                hour = b["time"].find("select.cron-time-hour").val();
-                day  = b["dom"].find("select").val();
+                min  = block["time-mins"].find("select").val();
+                hour = block["time-hrs"].find("select").val();
+                day  = block["dom"].find("select").val();
                 break;
 
             case "year":
-                min  = b["time"].find("select.cron-time-min").val();
-                hour = b["time"].find("select.cron-time-hour").val();
-                day  = b["dom"].find("select").val();
-                month = b["month"].find("select").val();
+                min  = block["time-mins"].find("select").val();
+                hour = block["time-hrs"].find("select").val();
+                day  = block["dom"].find("select").val();
+                month = block["month"].find("select").val();
                 break;
 
             default:
-                // we assume this only happens when customValues is set
+                // Assume this only happens when customValues is set.
                 return selectedPeriod;
         }
+
         return [min, hour, day, month, dow].join(" ");
     }
 
-    // -------------------  PUBLIC METHODS -----------------
+    /**
+     * Public Methods
+     */
 
     var methods = {
         init : function(opts) {
-            
-            // init options
-            var options = opts ? opts : {}; /* default to empty obj */
+            // Init options.
+            var options = opts ? opts : {};  // Default to empty obj.
             var o = $.extend([], defaults, options);
             var eo = $.extend({}, defaults.effectOpts, options.effectOpts);
-            $.extend(o, { 
+            $.extend(o, {
                 minuteOpts     : $.extend({}, defaults.minuteOpts, eo, options.minuteOpts), 
                 domOpts        : $.extend({}, defaults.domOpts, eo, options.domOpts), 
                 monthOpts      : $.extend({}, defaults.monthOpts, eo, options.monthOpts), 
@@ -272,102 +300,128 @@
                 timeHourOpts   : $.extend({}, defaults.timeHourOpts, eo, options.timeHourOpts), 
                 timeMinuteOpts : $.extend({}, defaults.timeMinuteOpts, eo, options.timeMinuteOpts)
             });
-            
-            // error checking
-            if (hasError(this, o)) { return this; }
 
-            // ---- define select boxes in the right order -----
-
-            var block = [], custom_periods = "", cv = o.customValues;
-            if (defined(cv)) { // prepend custom values if specified
-                for (var key in cv) {
-                    custom_periods += "<option value='" + cv[key] + "'>" + key + "</option>\n";
+            // Prepend custom values if specified.
+            var custom_periods = "";
+            if (defined(o.customValues)) {
+                for (var key in o.customValues) {
+                    custom_periods += "<option value='" + o.customValues[key] + "'>" + key + "</option>";
                 }
             }
-            block["period"] = $("<span class='cron-period'>"
-                    + "Every <select name='cron-period'>" + custom_periods 
-                    + str_opt_period + "</select> </span>")
-                .appendTo(this)                               
-                .find("select")
-                    .bind("change.cron", event_handlers.periodChanged)
-                    .data("root", this)
-                    .gentleSelect(eo)
-                    .end();
-            
-            block["dom"] = $("<span class='cron-block cron-block-dom'>"
-                    + " on the <select name='cron-dom'>" + str_opt_dom 
-                    + "</select> </span>")
-                .appendTo(this)
-                .data("root", this)
-                .find("select")
-                    .gentleSelect(o.domOpts)
-                    .data("root", this)
-                    .end();
 
-            block["month"] = $("<span class='cron-block cron-block-month'>"
-                    + " of <select name='cron-month'>" + str_opt_month 
-                    + "</select> </span>")
-                .appendTo(this)
-                .data("root", this)
-                .find("select")
-                    .gentleSelect(o.monthOpts)
-                    .data("root", this)
-                    .end();
+            // Error checking.
+            if (hasError(this, o)) {
+                return this;
+            }
 
-            block["mins"] = $("<span class='cron-block cron-block-mins'>"
-                    + " at <select name='cron-mins'>" + str_opt_mih 
-                    + "</select> minutes past the hour </span>")
-                .appendTo(this)
-                .data("root", this)
-                .find("select")
-                    .gentleSelect(o.minuteOpts)
-                    .data("root", this)
-                    .end();
+            var blockBefore = [];
+            var blockAfter = [];
+            var block = [];
 
-            block["dow"] = $("<span class='cron-block cron-block-dow'>"
-                    + " on <select name='cron-dow'>" + str_opt_dow
-                    + "</select> </span>")
-                .appendTo(this)
-                .data("root", this)
-                .find("select")
-                    .gentleSelect(o.dowOpts)
-                    .data("root", this)
-                    .end();
+            // We use a table in order to vertically center all our elements.
+            // This seems to be the simplest method and works across all browsers.
+            var $tr = $("<table><tr></tr></table>").appendTo(this).find("tr");
 
-            block["time"] = $("<span class='cron-block cron-block-time'>"
-                    + " at <select name='cron-time-hour' class='cron-time-hour'>" + str_opt_hid
-                    + "</select>:<select name='cron-time-min' class='cron-time-min'>" + str_opt_mih
-                    + " </span>")
-                .appendTo(this)
-                .data("root", this)
-                .find("select.cron-time-hour")
-                    .gentleSelect(o.timeHourOpts)
-                    .data("root", this)
-                    .end()
-                .find("select.cron-time-min")
-                    .gentleSelect(o.timeMinuteOpts)
-                    .data("root", this)
-                    .end();
+            // Period.
+            $tr.append(blockBefore["period"] = $("<td class='cron-period'>Every </td>"));
+            var $periodBlock = block["period"] = $(
+                      "<td class='cron-period'>"
+                    + "<select name='cron-period'>"
+                    + custom_periods
+                    + str_opt_period
+                    + "</select>"
+                    + "</td>");
+            $periodBlock.appendTo($tr);
+            var $periodSelectEl = $periodBlock.find("select");
+            $periodSelectEl.bind("change.cron", event_handlers.periodChanged);
+            $periodSelectEl.data("root", this);
+            $periodSelectEl.gentleSelect(eo);
 
-            block["controls"] = $("<span class='cron-controls'>&laquo; save "
-                    + "<span class='cron-button cron-button-save'></span>"
-                    + " </span>")
-                .appendTo(this)
-                .data("root", this)
-                .find("span.cron-button-save")
-                    .bind("click.cron", event_handlers.saveClicked)
-                    .data("root", this)
-                    .end();
+            // Days of month.
+            $tr.append(blockBefore["dom"] = $("<td class='cron-block cron-block-dom'>on the: </td>"));
+            var $domBlock = block["dom"] = $(
+                      "<td class='cron-block cron-block-dom'>"
+                    + "<select name='cron-dom' multiple='multiple'>"
+                    + str_opt_dom 
+                    + "</select>"
+                    + "</td>");
+            $domBlock.appendTo($tr);
+            $domBlock.data("root", this);
+            $domBlock.find("select").gentleSelect(o.domOpts).data("root", this);
+
+            // Months.
+            $tr.append(blockBefore["month"] = $("<td class='cron-block cron-block-month'>of: </td>"));
+            var $monthBlock = block["month"] = $(
+                      "<td class='cron-block cron-block-month'>"
+                    + "<select name='cron-month' multiple='multiple'>"
+                    + str_opt_month 
+                    + "</select>"
+                    + "</td>");
+            $monthBlock.appendTo($tr);
+            $monthBlock.data("root", this);
+            $monthBlock.find("select").gentleSelect(o.monthOpts).data("root", this);
+
+            // Minutes.
+            $tr.append(blockBefore["mins"] = $("<td class='cron-block cron-block-mins'>at </td>"));
+            var $minsBlock = block["mins"] = $(
+                      "<span class='cron-block cron-block-mins'>"
+                    + "<select name='cron-mins' multiple='multiple'>"
+                    + str_opt_mih 
+                    + "</select>"
+                    + "</span>");
+            $minsBlock.appendTo($tr);
+            $minsBlock.data("root", this);
+            $minsBlock.find("select").gentleSelect(o.minuteOpts).data("root", this);
+            $tr.append(blockAfter["mins"] = $("<td class='cron-block cron-block-mins'> minutes past the hour</td>"));
+
+            // Days of week.
+            $tr.append(blockBefore["dow"] = $("<td class='cron-block cron-block-dow'>on: </td>"));
+            var $dowBlock = block["dow"] = $(
+                      "<td class='cron-block cron-block-dow'>"
+                    + "<select name='cron-dow' multiple='multiple'>"
+                    + str_opt_dow
+                    + "</select>"
+                    + "</td>");
+            $dowBlock.appendTo($tr);
+            $dowBlock.data("root", this);
+            $dowBlock.find("select").gentleSelect(o.dowOpts).data("root", this);
+
+            // Hour of the day.
+            $tr.append(blockBefore["time-hrs"] = $("<td class='cron-block cron-time-hour'>at </td>"));
+            var $timeHrsBlock = block["time-hrs"] = $(
+                      "<td class='cron-block cron-time-hour'>"
+                    + "<select name='cron-time-hour' multiple='multiple'>"
+                    + str_opt_hid
+                    + "</select>"
+                    + "</td>");
+            $timeHrsBlock.appendTo($tr);
+            $timeHrsBlock.data("root", this);
+            $timeHrsBlock.find("select").gentleSelect(o.timeHourOpts).data("root", this);
+
+            // Minute of the hour.
+            $tr.append(blockBefore["time-mins"] = $("<td class='cron-block cron-time-min'>: </td>"));
+            var $timeMinsBlock = block["time-mins"] = $(
+                      "<td class='cron-block cron-time-min'>"
+                    + "<select name='cron-time-min' multiple='multiple'>"
+                    + str_opt_mih
+                    + "</select>"
+                    + "</td>");
+            $timeMinsBlock.appendTo($tr);
+            $timeMinsBlock.data("root", this);
+            $timeMinsBlock.find("select").gentleSelect(o.timeMinuteOpts).data("root", this);
 
             this.find("select").bind("change.cron-callback", event_handlers.somethingChanged);
-            this.data("options", o).data("block", block); // store options and block pointer
-            this.data("current_value", o.initial); // remember base value to detect changes
-            
-            return methods["value"].call(this, o.initial); // set initial value
+            this.data("options", o);
+            this.data("block", block);
+            this.data("blockBefore", blockBefore);
+            this.data("blockAfter", blockAfter);
+            this.data("current_value", o.initial);  // Remember base value to detect changes.
+
+            return methods["value"].call(this, o.initial);  // Set initial value.
         },
 
         value : function(cron_str) {
-            // when no args, act as getter
+            // When no args, act as getter.
             if (!cron_str) { return getCurrentValue(this); }
 
             var t = getCronType(cron_str);
@@ -383,24 +437,37 @@
                 "dow"   : d[4]
             };
 
-            // update appropriate select boxes
+            // Update appropriate select boxes.
             var targets = toDisplay[t];
             for (var i = 0; i < targets.length; i++) {
                 var tgt = targets[i];
-                if (tgt == "time") {
+
+                if (tgt == "time-mins") {
+                  var minsArr = v["mins"].split(",");
+
+                  for (var j = 0; j < minsArr.length; j++) {
+                    var mins = minsArr[j];
+
+                    // TODO: Need a match so that 0 will match 00, etc
+                    // contains might not be strict enough.
+                    console.log("MINS IS " + mins);
+                    var $optionEl = block[tgt].find("option:contains('" + mins + "')").first();
+                    console.log($optionEl);
+                    if ($optionEl.length)
+                      $optionEl[0].selected = true;
+ 
+                    block[tgt].find("select").gentleSelect("update");
+                  }
+                } else if (tgt == "time-hrs") {
                     block[tgt]
-                        .find("select.cron-time-hour")
-                            .val(v["hour"]).gentleSelect("update")
-                            .end()
-                        .find("select.cron-time-min")
-                            .val(v["mins"]).gentleSelect("update")
-                        .end();
-                } else {;
+                        .find("select")
+                            .val(v["hour"]).gentleSelect("update");
+                } else {
                     block[tgt].find("select").val(v[tgt]).gentleSelect("update");
                 }
             }
-            
-            // trigger change event
+
+            // Trigger change event.
             block["period"].find("select")
                 .val(t)
                 .gentleSelect("update")
@@ -408,83 +475,59 @@
 
             return this;
         }
-
     };
 
     var event_handlers = {
         periodChanged : function() {
             var root = $(this).data("root");
-            var block = root.data("block"),
-                opt = root.data("options");
+            var blockBefore = root.data("blockBefore");
+            var blockAfter = root.data("blockAfter");
+            var block = root.data("block");
+            var opt = root.data("options");
             var period = $(this).val();
-            root.find("span.cron-block").hide(); // first, hide all blocks
-            if (toDisplay.hasOwnProperty(period)) { // not custom value
+            root.find(".cron-block").hide();  // First, hide all blocks.
+            if (toDisplay.hasOwnProperty(period)) {
+                // Only if not a custom value.
                 var b = toDisplay[$(this).val()];
                 for (var i = 0; i < b.length; i++) {
-                    block[b[i]].show();
+                    var type = b[i];
+
+                    var $blockBeforeEl = blockBefore[type];
+                    if ($blockBeforeEl)
+                      $blockBeforeEl.show();
+
+                    block[type].show();
+
+                    var $blockAfterEl = blockAfter[type];
+                    if ($blockAfterEl)
+                      $blockAfterEl.show();
                 }
             }
         },
 
         somethingChanged : function() {
-            root = $(this).data("root");
-            // if AJAX url defined, show "save"/"reset" button
-            if (defined(root.data("options").url_set)) {
-                if (methods.value.call(root) != root.data("current_value")) { // if changed
-                    root.addClass("cron-changed");
-                    root.data("block")["controls"].fadeIn();
-                } else { // values manually reverted
-                    root.removeClass("cron-changed");
-                    root.data("block")["controls"].fadeOut();
-                }
-            } else {
-                root.data("block")["controls"].hide();
-            }
+            var root = $(this).data("root");
 
-            // chain in user defined event handler, if specified
+            // Chain in user defined event handler, if specified.
             var oc = root.data("options").onChange;
             if (defined(oc) && $.isFunction(oc)) {
                 oc.call(root);
             }
-        },
-
-        saveClicked : function() {
-            var btn  = $(this);
-            var root = btn.data("root");
-            var cron_str = methods.value.call(root);
-
-            if (btn.hasClass("cron-loading")) { return; } // in progress
-            btn.addClass("cron-loading");
-
-            $.ajax({
-                type : "POST",
-                url  : root.data("options").url_set,
-                data : { "cron" : cron_str },
-                success : function() {
-                    root.data("current_value", cron_str);
-                    btn.removeClass("cron-loading");
-                    // data changed since "save" clicked?
-                    if (cron_str == methods.value.call(root)) {
-                        root.removeClass("cron-changed");
-                        root.data("block").controls.fadeOut();
-                    }                    
-                },
-                error : function() {
-                    alert("An error occured when submitting your request. Try again?");
-                    btn.removeClass("cron-loading");
-                }
-            });
         }
     };
 
     $.fn.cron = function(method) {
+        if (method === "test") {
+          // Return an object that exposes internal functions for unit testing.
+          return test;
+        }
+
         if (methods[method]) {
             return methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
         } else if (typeof method === 'object' || ! method) {
             return methods.init.apply(this, arguments);
         } else {
             $.error( 'Method ' +  method + ' does not exist on jQuery.cron' );
-        }   
+        }
     };
-
 })(jQuery);
