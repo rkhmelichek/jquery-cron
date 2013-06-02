@@ -4,3 +4,9 @@
 [submodule "test/chai"]
 	path = test/chai
 	url = git://github.com/chaijs/chai.git
+[submodule "test/sinon-chai"]
+	path = test/sinon-chai
+	url = git://github.com/domenic/sinon-chai.git
+[submodule "test/sinon"]
+	path = test/sinon
+	url = git://github.com/cjohansen/Sinon.JS.git

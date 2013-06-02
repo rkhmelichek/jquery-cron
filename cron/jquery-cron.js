@@ -199,7 +199,6 @@
         var valid_cron = new RegExp("^(" + cron_field + "\\s){4}" + cron_field + "$");
         if (typeof cron_str != "string" || !valid_cron.test(cron_str)) {
             $.error("cron: invalid initial value");
-            return undefined;
         }
 
         // Check actual cron values.
@@ -216,7 +215,6 @@
                 continue;
 
             $.error("cron: invalid value found (col "+(i+1)+") in " + cron_str);
-            return undefined;
         }
 
         // Determine combination.
@@ -228,7 +226,6 @@
 
         // Unknown combination.
         $.error("cron: valid but unsupported cron format");
-        return undefined;
     }
     test.getCronType = getCronType;
 
@@ -314,16 +311,16 @@
                 return this;
             }
 
-            var blockBefore = [];
-            var blockAfter = [];
-            var block = [];
+            var blockBefore = {};
+            var blockAfter = {};
+            var block = {};
 
             // We use a table in order to vertically center all our elements.
             // This seems to be the simplest method and works across all browsers.
             var $tr = $("<table><tr></tr></table>").appendTo(this).find("tr");
 
             // Period.
-            $tr.append(blockBefore["period"] = $("<td class='cron-period'>Every </td>"));
+            $tr.append(blockBefore["period"] = $("<td class='cron-period-before'>Every </td>"));
             var $periodBlock = block["period"] = $(
                       "<td class='cron-period'>"
                     + "<select name='cron-period'>"
@@ -338,7 +335,7 @@
             $periodSelectEl.gentleSelect(eo);
 
             // Days of month.
-            $tr.append(blockBefore["dom"] = $("<td class='cron-block cron-block-dom'>on the: </td>"));
+            $tr.append(blockBefore["dom"] = $("<td class='cron-block cron-block-dom-before'>on the: </td>"));
             var $domBlock = block["dom"] = $(
                       "<td class='cron-block cron-block-dom'>"
                     + "<select name='cron-dom' multiple='multiple'>"
@@ -350,7 +347,7 @@
             $domBlock.find("select").gentleSelect(o.domOpts).data("root", this);
 
             // Months.
-            $tr.append(blockBefore["month"] = $("<td class='cron-block cron-block-month'>of: </td>"));
+            $tr.append(blockBefore["month"] = $("<td class='cron-block cron-block-month-before'>of: </td>"));
             var $monthBlock = block["month"] = $(
                       "<td class='cron-block cron-block-month'>"
                     + "<select name='cron-month' multiple='multiple'>"
@@ -362,7 +359,7 @@
             $monthBlock.find("select").gentleSelect(o.monthOpts).data("root", this);
 
             // Minutes.
-            $tr.append(blockBefore["mins"] = $("<td class='cron-block cron-block-mins'>at </td>"));
+            $tr.append(blockBefore["mins"] = $("<td class='cron-block cron-block-mins-before'>at </td>"));
             var $minsBlock = block["mins"] = $(
                       "<span class='cron-block cron-block-mins'>"
                     + "<select name='cron-mins' multiple='multiple'>"
@@ -372,10 +369,10 @@
             $minsBlock.appendTo($tr);
             $minsBlock.data("root", this);
             $minsBlock.find("select").gentleSelect(o.minuteOpts).data("root", this);
-            $tr.append(blockAfter["mins"] = $("<td class='cron-block cron-block-mins'> minutes past the hour</td>"));
+            $tr.append(blockAfter["mins"] = $("<td class='cron-block cron-block-mins-after'> minutes past the hour</td>"));
 
             // Days of week.
-            $tr.append(blockBefore["dow"] = $("<td class='cron-block cron-block-dow'>on: </td>"));
+            $tr.append(blockBefore["dow"] = $("<td class='cron-block cron-block-dow-before'>on: </td>"));
             var $dowBlock = block["dow"] = $(
                       "<td class='cron-block cron-block-dow'>"
                     + "<select name='cron-dow' multiple='multiple'>"
@@ -387,7 +384,7 @@
             $dowBlock.find("select").gentleSelect(o.dowOpts).data("root", this);
 
             // Hour of the day.
-            $tr.append(blockBefore["time-hrs"] = $("<td class='cron-block cron-time-hour'>at </td>"));
+            $tr.append(blockBefore["time-hrs"] = $("<td class='cron-block cron-time-hour-before'>at </td>"));
             var $timeHrsBlock = block["time-hrs"] = $(
                       "<td class='cron-block cron-time-hour'>"
                     + "<select name='cron-time-hour' multiple='multiple'>"
@@ -399,7 +396,7 @@
             $timeHrsBlock.find("select").gentleSelect(o.timeHourOpts).data("root", this);
 
             // Minute of the hour.
-            $tr.append(blockBefore["time-mins"] = $("<td class='cron-block cron-time-min'>: </td>"));
+            $tr.append(blockBefore["time-mins"] = $("<td class='cron-block cron-time-min-before'>: </td>"));
             var $timeMinsBlock = block["time-mins"] = $(
                       "<td class='cron-block cron-time-min'>"
                     + "<select name='cron-time-min' multiple='multiple'>"
@@ -421,59 +418,63 @@
         },
 
         value : function(cron_str) {
-            // When no args, act as getter.
-            if (!cron_str) { return getCurrentValue(this); }
+          // When no args, act as getter.
+          if (!cron_str) { return getCurrentValue(this); }
 
-            var t = getCronType(cron_str);
-            if (!defined(t)) { return false; }
+          var t = getCronType(cron_str);
+          if (!defined(t)) { return false; }
 
-            var block = this.data("block");
-            var d = cron_str.split(" ");
-            var v = {
-                "mins"  : d[0],
-                "hour"  : d[1],
-                "dom"   : d[2],
-                "month" : d[3],
-                "dow"   : d[4]
-            };
+          var block = this.data('block');
+          var d = cron_str.split(' ');
+          var v = {
+            'mins'  : d[0],
+            'hour'  : d[1],
+            'dom'   : d[2],
+            'month' : d[3],
+            'dow'   : d[4]
+          };
 
-            // Update appropriate select boxes.
-            var targets = toDisplay[t];
-            for (var i = 0; i < targets.length; i++) {
-                var tgt = targets[i];
+          // Update appropriate select boxes.
+          var targets = toDisplay[t];
+          for (var i = 0; i < targets.length; i++) {
+            var tgt = targets[i];
+            var fieldVal;
 
-                if (tgt == "time-mins") {
-                  var minsArr = v["mins"].split(",");
-
-                  for (var j = 0; j < minsArr.length; j++) {
-                    var mins = minsArr[j];
-
-                    // TODO: Need a match so that 0 will match 00, etc
-                    // contains might not be strict enough.
-                    console.log("MINS IS " + mins);
-                    var $optionEl = block[tgt].find("option:contains('" + mins + "')").first();
-                    console.log($optionEl);
-                    if ($optionEl.length)
-                      $optionEl[0].selected = true;
- 
-                    block[tgt].find("select").gentleSelect("update");
-                  }
-                } else if (tgt == "time-hrs") {
-                    block[tgt]
-                        .find("select")
-                            .val(v["hour"]).gentleSelect("update");
-                } else {
-                    block[tgt].find("select").val(v[tgt]).gentleSelect("update");
-                }
+            if (tgt == 'time-mins') {
+              fieldVal = v['mins'];
+            } else if (tgt == 'time-hrs') {
+              fieldVal = v['hour'];
+            } else {
+              fieldVal = v[tgt];
             }
 
-            // Trigger change event.
-            block["period"].find("select")
-                .val(t)
-                .gentleSelect("update")
-                .trigger("change");
+            // Deselect all options.
+            block[tgt].find('option').each(function(i) {
+              this.selected = false;
+            });
 
-            return this;
+            var fieldValArr = fieldVal.split(',');
+            for (var j = 0; j < fieldValArr.length; j++) {
+              var val = fieldValArr[j];
+
+              // Selects an option, matching (numerically) on the 'value' attribute.
+              block[tgt].find('option').each(function(i) {
+                if (this.value == Number(val)) {
+                  this.selected = true;
+                  return false;
+                }
+              });
+              block[tgt].find('select').gentleSelect('update');
+            }
+          }
+
+          // Trigger change event.
+          block['period'].find('select')
+            .val(t)
+            .gentleSelect('update')
+            .trigger('change');
+
+          return this;
         }
     };
 

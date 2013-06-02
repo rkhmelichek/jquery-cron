@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Test Runner</title>
+
+    <link rel="stylesheet" href="mocha/mocha.css" />
+    <link rel="stylesheet" href="test.css" />
+
+    <script src="../jquery-1.10.0.js"></script>
+    <script src="mocha/mocha.js"></script>
+    <script src="chai/chai.js"></script>
+
+    <script>
+      chai.should();
+      mocha.setup('bdd');
+    </script>
+
+    <!-- Stylesheet(s) for the plugin. -->
+    <link rel="stylesheet" href="../gentleSelect/jquery-gentleSelect.css" />
+    <link rel="stylesheet" href="../cron/jquery-cron.css" />
+
+    <!-- Plugin code. -->
+    <script src="../gentleSelect/jquery-gentleSelect.js"></script>
+    <script src="../cron/jquery-cron.js"></script>
+
+    <!-- Code for tests. -->
+    <script src="test.js"></script>
+
+    <script>
+      $(function() {
+        mocha.run();
+      });
+    </script>
+
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <div id="test"></div>
+  </body>
+</html>
