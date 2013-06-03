@@ -148,16 +148,8 @@
             if (hasError(this, o)) { return this; };  // Check for errors.
             this.hide();  // Hide original select box.
 
-            // If there is nothing selected, as is the case initially
-            // with multiple select boxes, get the first item on the list.
-            var $selectedEls = this.find(":selected");
-            if (!$selectedEls.length) {
-              $selectedEls = this.find("option").first();
-              $selectedEls[0].selected = true;
-            }
-
             // The select box replacement.
-            label_text = getSelectedAsText(this, $selectedEls, o);
+            label_text = getSelectedAsText(this, this.find(":selected"), o);
             var label = $("<div class='gentleselect-label'>" + label_text + "</div>")
                 .insertBefore(this)
                 .bind("mouseenter.gentleselect", event_handlers.labelHoverIn)
@@ -243,6 +235,14 @@
             // Hide inactive dialog boxes if the click was inside the select dialog box or the label.
             dialog.click(event_handlers.hideInactive);
             label.click(event_handlers.hideInactive);
+
+            // If there is nothing selected, as is the case initially
+            // with multiple select boxes, get the first item on the list.
+            if (!this.find(":selected").length) {
+              var $option = this.find("option").first();
+              $option.get(0).selected = true;
+              methods.update.call(this);
+            }
 
             return this;
         },
