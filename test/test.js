@@ -76,10 +76,13 @@
       });
 
       it('should initialize a "minute" cron', function() {
-        var $cron = getCurrCronUiEl().cron({
+        var $cronUiEl = getCurrCronUiEl();
+        var $cronValEl = getCurrCronValEl();
+
+        var $cron = $cronUiEl.cron({
           initial: '* * * * *',
           onChange: function() {
-            var cronVal = getCurrCronValEl().text($(this).cron("value"));
+            $cronValEl.text($(this).cron('value'));
           }
         });
 
@@ -120,10 +123,61 @@
       });
 
       it('should initialize a "week" cron', function() {
-        var $cron = getCurrCronUiEl().cron({
+        var $cronUiEl = getCurrCronUiEl();
+        var $cronValEl = getCurrCronValEl();
+
+        var $cron = $cronUiEl.cron({
           initial: '0,15,30 5 * * 1,2',
           onChange: function() {
-            var cronVal = getCurrCronValEl().text($(this).cron("value"));
+            $cronValEl.text($(this).cron('value'));
+          }
+        });
+
+        var $cronPeriodEl = $cron.find('.cron-period');
+        $cronPeriodEl.should.have.length(1);
+        $cronPeriodEl.css('display').should.not.equal('none');
+        $cronPeriodEl.find('.gentleselect-label').text().should.equal('week');
+
+        var $cronBlockDomEl = $cron.find('.cron-block-dom');
+        $cronBlockDomEl.should.have.length(1);
+        $cronBlockDomEl.css('display').should.equal('none');
+        $cronBlockDomEl.find('.gentleselect-label').text().should.equal('1st');
+
+        var $cronBlockMonthEl = $cron.find('.cron-block-month');
+        $cronBlockMonthEl.should.have.length(1);
+        $cronBlockMonthEl.css('display').should.equal('none');
+        $cronBlockMonthEl.find('.gentleselect-label').text().should.equal('January');
+
+        var $cronBlockMinsEl = $cron.find('.cron-block-mins');
+        $cronBlockMinsEl.should.have.length(1);
+        $cronBlockMinsEl.css('display').should.equal('none');
+        $cronBlockMinsEl.find('.gentleselect-label').text().should.equal('00');
+
+        var $cronBlockDowEl = $cron.find('.cron-block-dow');
+        $cronBlockDowEl.should.have.length(1);
+        $cronBlockDowEl.css('display').should.not.equal('none');
+        $cronBlockDowEl.find('.gentleselect-label').text().should.equal('MondayTuesday');
+
+        var $cronBlockTimeHourEl = $cron.find('.cron-time-hour');
+        $cronBlockTimeHourEl.should.have.length(1);
+        $cronBlockTimeHourEl.css('display').should.not.equal('none');
+        $cronBlockTimeHourEl.find('.gentleselect-label').text().should.equal('05');
+
+        var $cronBlockTimeMinEl = $cron.find('.cron-time-min');
+        $cronBlockTimeMinEl.should.have.length(1);
+        $cronBlockTimeMinEl.css('display').should.not.equal('none');
+        $cronBlockTimeMinEl.find('.gentleselect-label').text().should.equal('001530');
+      });
+
+      it('should initialize a read-only "week" cron', function() {
+        var $cronUiEl = getCurrCronUiEl();
+        var $cronValEl = getCurrCronValEl();
+
+        var $cron = $cronUiEl.cron({
+          initial: '0,15,30 5 * * 1,2',
+          readOnly: true,
+          onChange: function() {
+            $cronValEl.text($(this).cron('value'));
           }
         });
 
@@ -163,5 +217,10 @@
         $cronBlockTimeMinEl.find('.gentleselect-label').text().should.equal('001530');
       });
     });
+  });
+
+
+  describe('test jquery-gentleSelect', function() {
+
   });
 }).call(this);

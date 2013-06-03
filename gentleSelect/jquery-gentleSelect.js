@@ -20,7 +20,6 @@
  *   <select id='myselect'><options> ... </options></select>
  */
 (function($) {
-    
     var defaults = {
         minWidth  : 100,  // Only applies if columns and itemWidth not set.
         itemWidth : undefined,
@@ -187,13 +186,13 @@
                 .data("label", label)
                 .data("root", this);
             this.data("dialog", dialog);
-           
+
             // If to be displayed in columns.
             if (defined(o.columns) || defined(o.rows)) {
                 // Update CSS.
                 ul.css("float", "left")
                     .find("li").width(o.itemWidth).css("float", "left");
-                    
+
                 var f = ul.find("li:first");
                 var actualWidth = o.itemWidth 
                     + parseInt(f.css("padding-left")) 
@@ -297,7 +296,7 @@
               $.data(document.body, "activeDialog", dialog[0]);
             }
         },
-    
+
         dialogHoverOut : function() {
             var $this = $(this);
             if ($this.data("root").data("options").hideOnMouseOut) {
@@ -329,21 +328,23 @@
                 // TODO:
                 // Animate the clicked element being inserted or removed.
 
-                if ($this.data("root").attr("multiple")) {
-                    clicked.toggleClass("selected");
-                    var s = $this.find("li.selected");
-                    label.html(getSelectedAsText(root, s, opts));
-                    var v = s.map(function() {
-                        return $(this).data("value");
-                    });
-                    // Update actual selectbox and trigger change event.
-                    root.val(v.get()).trigger("change");
-                } else {
-                    $this.find("li.selected").removeClass("selected");
-                    clicked.addClass("selected");
-                    label.text(clicked.data("name"));
-                    // Update actual selectbox and trigger change event.
-                    root.val(value).trigger("change");
+                if (!opts.readOnly) {
+                    if ($this.data("root").attr("multiple")) {
+                        clicked.toggleClass("selected");
+                        var s = $this.find("li.selected");
+                        label.html(getSelectedAsText(root, s, opts));
+                        var v = s.map(function() {
+                            return $(this).data("value");
+                        });
+                        // Update actual selectbox and trigger change event.
+                        root.val(v.get()).trigger("change");
+                    } else {
+                        $this.find("li.selected").removeClass("selected");
+                        clicked.addClass("selected");
+                        label.text(clicked.data("name"));
+                        // Update actual selectbox and trigger change event.
+                        root.val(value).trigger("change");
+                    }
                 }
             }
         },
@@ -359,7 +360,6 @@
 
           if (e.currentTarget == activeDialog) {
             // If they clicked on a dialog box.
-
             e.stopPropagation();
             $('.gentleselect-dialog').each(function(key, val) {
                 if ($(val).attr('display') != 'none' && val != e.currentTarget) {

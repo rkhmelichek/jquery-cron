@@ -42,6 +42,7 @@
 
     var defaults = {
         initial : "* * * * *",
+        readOnly: false,
         minuteOpts : {
             minWidth  : 100,  // Only applies if columns and itemWidth not set.
             itemWidth : 30,
@@ -91,7 +92,6 @@
             closeEffect    : "slide",
             hideOnMouseOut : true
         },
-        url_set : undefined,
         customValues : undefined,
         onChange: undefined
     };
@@ -100,7 +100,7 @@
     var str_opt_mih = "";
     for (var i = 0; i < 60; i++) {
         var j = (i < 10)? "0":"";
-        str_opt_mih += "<option value='"+i+"'>" + j +  i + "</option>\n"; 
+        str_opt_mih += "<option value='" + i + "'>" + j + i + "</option>\n"; 
     }
 
     // Options for hours in a day,
@@ -117,7 +117,7 @@
         else if (i == 2 || i == 22) { var suffix = "nd"; } 
         else if (i == 3 || i == 23) { var suffix = "rd"; } 
         else { var suffix = "th"; }
-        str_opt_dom += "<option value='"+i+"'>" + i + suffix + "</option>\n"; 
+        str_opt_dom += "<option value='" + i + "'>" + i + suffix + "</option>\n"; 
     }
 
     // Options for months.
@@ -126,7 +126,7 @@
                   "May", "June", "July", "August",
                   "September", "October", "November", "December"];
     for (var i = 0; i < months.length; i++) {
-        str_opt_month += "<option value='"+(i+1)+"'>" + months[i] + "</option>\n"; 
+        str_opt_month += "<option value='" + (i + 1) + "'>" + months[i] + "</option>\n"; 
     }
 
     // Options for day of week.
@@ -134,14 +134,14 @@
     var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday",
                 "Friday", "Saturday"];
     for (var i = 0; i < days.length; i++) {
-        str_opt_dow += "<option value='"+i+"'>" + days[i] + "</option>\n"; 
+        str_opt_dow += "<option value='" + i + "'>" + days[i] + "</option>\n"; 
     }
 
     // Options for period.
     var str_opt_period = "";
     var periods = ["minute", "hour", "day", "week", "month", "year"];
     for (var i = 0; i < periods.length; i++) {
-        str_opt_period += "<option value='"+periods[i]+"'>" + periods[i] + "</option>\n"; 
+        str_opt_period += "<option value='" + periods[i] + "'>" + periods[i] + "</option>\n"; 
     }
 
     // Display matrix.
@@ -235,10 +235,13 @@
         return false;
     }
 
-    function getCurrentValue(c) {
-        var block = c.data("block");
-        var min = hour = day = month = dow = "*";
+    function getCurrentValue($el) {
+        var min, hour, day, month, dow;
+        min = hour = day = month = dow = "*";
+
+        var block = $el.data("block");
         var selectedPeriod = block["period"].find("select").val();
+
         switch (selectedPeriod) {
             case "minute":
                 break;
@@ -286,16 +289,17 @@
     var methods = {
         init : function(opts) {
             // Init options.
-            var options = opts ? opts : {};  // Default to empty obj.
+            var options = opts ? opts : {};
             var o = $.extend([], defaults, options);
-            var eo = $.extend({}, defaults.effectOpts, options.effectOpts);
+            var ro = { readOnly: o.readOnly };
+            var eo = $.extend({}, defaults.effectOpts, options.effectOpts, ro);
             $.extend(o, {
-                minuteOpts     : $.extend({}, defaults.minuteOpts, eo, options.minuteOpts), 
-                domOpts        : $.extend({}, defaults.domOpts, eo, options.domOpts), 
-                monthOpts      : $.extend({}, defaults.monthOpts, eo, options.monthOpts), 
-                dowOpts        : $.extend({}, defaults.dowOpts, eo, options.dowOpts), 
-                timeHourOpts   : $.extend({}, defaults.timeHourOpts, eo, options.timeHourOpts), 
-                timeMinuteOpts : $.extend({}, defaults.timeMinuteOpts, eo, options.timeMinuteOpts)
+                minuteOpts     : $.extend({}, defaults.minuteOpts, eo, ro, options.minuteOpts),
+                domOpts        : $.extend({}, defaults.domOpts, eo, ro, options.domOpts),
+                monthOpts      : $.extend({}, defaults.monthOpts, eo, ro, options.monthOpts),
+                dowOpts        : $.extend({}, defaults.dowOpts, eo, ro, options.dowOpts),
+                timeHourOpts   : $.extend({}, defaults.timeHourOpts, eo, ro, options.timeHourOpts),
+                timeMinuteOpts : $.extend({}, defaults.timeMinuteOpts, eo, ro, options.timeMinuteOpts)
             });
 
             // Prepend custom values if specified.
@@ -412,9 +416,9 @@
             this.data("block", block);
             this.data("blockBefore", blockBefore);
             this.data("blockAfter", blockAfter);
-            this.data("current_value", o.initial);  // Remember base value to detect changes.
+            this.data("initialized", false);
 
-            return methods["value"].call(this, o.initial);  // Set initial value.
+            return methods.value.call(this, o.initial);  // Set initial value.
         },
 
         value : function(cron_str) {
@@ -423,6 +427,11 @@
 
           var t = getCronType(cron_str);
           if (!defined(t)) { return false; }
+
+          // Do not set the value if read-only unless the cron has not yet been initialized.
+          var initialized = this.data('initialized');
+          var opts = this.data('options');
+          if (initialized && opts.readOnly) { return false; }
 
           var block = this.data('block');
           var d = cron_str.split(' ');
@@ -474,18 +483,26 @@
             .gentleSelect('update')
             .trigger('change');
 
+          // Cron has been initialized.
+          this.data("initialized", true);
+
           return this;
         }
     };
 
     var event_handlers = {
         periodChanged : function() {
-            var root = $(this).data("root");
+            var root = $(this).data('root');
+            var initialized = root.data('initialized');
+            var opts = root.data('options');
+
+            if (initialized && opts.readOnly) { return; }
+
             var blockBefore = root.data("blockBefore");
             var blockAfter = root.data("blockAfter");
             var block = root.data("block");
-            var opt = root.data("options");
             var period = $(this).val();
+
             root.find(".cron-block").hide();  // First, hide all blocks.
             if (toDisplay.hasOwnProperty(period)) {
                 // Only if not a custom value.
