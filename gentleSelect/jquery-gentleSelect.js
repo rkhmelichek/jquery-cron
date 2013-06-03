@@ -98,38 +98,27 @@
             isTruncated = false;
         }
 
-        // Determine if the list contains strings or numbers.
-        var isAllNumeric = true;
-        var startsWithNumberRegex = /^[0-9]+/;
-        for (var i = 0; i < arr.length; i++) {
-          if (!startsWithNumberRegex.test(arr[i])) {
-            isAllNumeric = false;
-            break;
-          }
-        }
-
         // TODO: After you pick an option, close the dropdown, and animate the new item being added.
-        var cmp;
-        if (isAllNumeric) {
-          // Numeric comparison function.
-          cmp = function(a, b) {
-            var aMatch = startsWithNumberRegex.exec(a);
-            var bMatch = startsWithNumberRegex.exec(b);
 
-            if (aMatch != null) a = aMatch[0];
-            if (bMatch != null) b = bMatch[0];
+        // Compare by the order defined in the select element.
+        var cmp = function(lhs, rhs) {
+          var valLhs;
+          all.find('option').each(function(i) {
+            if (this.text == lhs) {
+              valLhs = Number(this.value);
+              return false;
+            }
+          });
 
-            return a - b;
-          };
-        } else {
-          // Compare by the order defined in the select element.
-          cmp = function(a, b) {
-            var aOption = all.find("option:contains('" + a + "')").first();
-            var bOption = all.find("option:contains('" + b + "')").first();
+          var valRhs;
+          all.find('option').each(function(i) {
+            if (this.text == rhs) {
+              valRhs = Number(this.value);
+              return false;
+            }
+          });
 
-            // TODO: Check for null?
-            return aOption.attr("value") > bOption.attr("value");
-          }
+          return valLhs > valRhs;
         }
 
         arr.sort(cmp);
