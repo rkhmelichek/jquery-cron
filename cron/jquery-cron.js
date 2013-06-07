@@ -365,11 +365,11 @@
             // Minutes.
             $tr.append(blockBefore["mins"] = $("<td class='cron-block cron-block-mins-before'>at </td>"));
             var $minsBlock = block["mins"] = $(
-                      "<span class='cron-block cron-block-mins'>"
+                      "<td class='cron-block cron-block-mins'>"
                     + "<select name='cron-mins' multiple='multiple'>"
                     + str_opt_mih 
                     + "</select>"
-                    + "</span>");
+                    + "</td>");
             $minsBlock.appendTo($tr);
             $minsBlock.data("root", this);
             $minsBlock.find("select").gentleSelect(o.minuteOpts).data("root", this);
