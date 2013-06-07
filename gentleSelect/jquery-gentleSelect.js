@@ -118,7 +118,7 @@
             }
           });
 
-          return valLhs > valRhs;
+          return valLhs - valRhs;
         }
 
         arr.sort(cmp);
